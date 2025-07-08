@@ -235,7 +235,7 @@ cat > "usr/local/lib/systemd/system/multi-user.target.d/10-sysbox-service.conf" 
 Wants=sysbox.service
 EOF
 
-# Create sysctl configuration for Sysbox
+# Create the sysctl configuration for Sysbox
 printf "${GREEN}Creating sysctl configuration\n"
 cat > "usr/local/etc/sysctl.d/99-sysbox-sysctl.conf" << 'EOF'
 # Sysbox sysctl settings
