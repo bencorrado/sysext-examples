@@ -166,7 +166,6 @@ mkdir -p "$GOPATH" "$GOCACHE"
 
 # Clone the repository directly into the sysext directory
 printf "${GREEN}Cloning Sysbox repository\n"
-pushd "$sysext_name" > /dev/null || exit 1
 if ! git clone --recursive --branch "v${latest_version}" https://github.com/nestybox/sysbox.git build; then
   printf "${RED}Failed to clone Sysbox repository\n"
   exit 1

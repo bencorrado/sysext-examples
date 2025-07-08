@@ -71,6 +71,7 @@ buildAndPush() {
   local dir=$1
   if [ ! -d "${dir}/usr/" ]; then
       echo "$dir doesnt look like a sysextension, skipping"
+      return
   fi
   # Get the full directory name without trailing slash
   dir_name="${dir%/}"
