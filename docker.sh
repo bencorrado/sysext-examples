@@ -95,18 +95,6 @@ BinaryName = "/usr/local/bin/sysbox-runc"
 SystemdCgroup = true
 EOF
 
-# Create Docker daemon configuration with sysbox-runc runtime support
-mkdir -p usr/local/etc/docker
-cat > usr/local/etc/docker/daemon.json << EOF
-{
-  "runtimes": {
-    "sysbox-runc": {
-      "path": "/usr/local/bin/sysbox-runc"
-    }
-  }
-}
-EOF
-
 # Copy systemd service files
 cp ../services/containerd.service usr/local/lib/systemd/system/
 cp ../services/docker.service usr/local/lib/systemd/system/
