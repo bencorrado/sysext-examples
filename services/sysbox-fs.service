@@ -1,11 +1,13 @@
 [Unit]
 Description=sysbox-fs (part of the Sysbox container runtime)
 PartOf=sysbox.service
-After=sysbox-mgr.service
+Requires=network-online.target
+After=network-online.target sysbox-mgr.service
 
 [Service]
 Type=notify
-ExecStart=/usr/local/bin/sysbox-fs
+ExecStartPre=/bin/mkdir -p /usr/local/sysboxfs
+ExecStart=/usr/local/bin/sysbox-fs --mountpoint /usr/local/sysboxfs
 TimeoutStartSec=10
 TimeoutStopSec=10
 StartLimitInterval=0

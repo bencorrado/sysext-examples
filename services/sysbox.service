@@ -11,6 +11,7 @@ Before=docker.service containerd.service
 
 [Service]
 Type=exec
+ExecStartPre=/bin/mkdir -p /usr/local/sysbox /usr/local/sysboxfs
 ExecStart=/bin/sh -c "/usr/local/bin/sysbox-runc --version && /usr/local/bin/sysbox-mgr --version && /usr/local/bin/sysbox-fs --version && /bin/sleep infinity"
 
 [Install]

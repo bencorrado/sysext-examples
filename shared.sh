@@ -85,7 +85,7 @@ buildAndPush() {
     fi
   done
 
-  # If not a special case, use the standard approach
+  # If not a special case, then use the standard approach
   if [ -z "$name" ]; then
     # Find the position of the last dash
     last_dash_pos=$(echo "$dir_name" | grep -bo '-' | tail -1 | cut -d':' -f1)

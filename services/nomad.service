@@ -11,8 +11,6 @@ StartLimitBurst=3
 
 [Service]
 Type=notify
-User=root
-Group=nomad
 EnvironmentFile=-/oem/nomad/.env
 ExecStart=/usr/local/bin/nomad agent -config=/oem/nomad/client.hcl
 ExecReload=/bin/kill -HUP $MAINPID

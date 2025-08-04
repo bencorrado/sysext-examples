@@ -1,10 +1,13 @@
 [Unit]
 Description=sysbox-mgr (part of the Sysbox container runtime)
 PartOf=sysbox.service
+Requires=network-online.target
+After=network-online.target
 
 [Service]
 Type=notify
-ExecStart=/usr/local/bin/sysbox-mgr
+ExecStartPre=/bin/mkdir -p /usr/local/sysbox
+ExecStart=/usr/local/bin/sysbox-mgr --data-root /usr/local/sysbox
 TimeoutStartSec=45
 TimeoutStopSec=90
 StartLimitInterval=0
