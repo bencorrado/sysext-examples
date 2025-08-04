@@ -224,9 +224,9 @@ chmod +x "usr/local/bin/sysbox"
 
 # Copy systemd service files
 printf "${GREEN}Copying systemd service files\n"
-cp build/sysbox-pkgr/systemd/sysbox-fs.service usr/local/lib/systemd/system/
-cp build/sysbox-pkgr/systemd/sysbox-mgr.service usr/local/lib/systemd/system/
-cp build/sysbox-pkgr/systemd/sysbox.service usr/local/lib/systemd/system/
+cp ../services/sysbox-fs.service usr/local/lib/systemd/system/
+cp ../services/sysbox-mgr.service usr/local/lib/systemd/system/
+cp ../services/sysbox.service usr/local/lib/systemd/system/
 
 # Create systemd target configuration to enable the services
 cat > "usr/local/lib/systemd/system/multi-user.target.d/10-sysbox-service.conf" << 'EOF'
