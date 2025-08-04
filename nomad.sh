@@ -34,6 +34,9 @@ mkdir -p nomad-"$latest_version"
 pushd nomad-"$latest_version" > /dev/null || exit 1
 createDirs
 
+# Create directory for systemd target configuration
+mkdir -p usr/local/lib/systemd/system/multi-user.target.d
+
 # Download Nomad binary, checksums, and signature
 printf "${GREEN}Downloading Nomad binary, checksums, and signature\n"
 tmpDir=$(mktemp -d)
@@ -88,6 +91,13 @@ rm -Rf "$tmpDir"
 
 # Copy service files
 cp ../services/nomad.* usr/local/lib/systemd/system/
+
+# Create systemd target configuration to enable and start the service
+cat > usr/local/lib/systemd/system/multi-user.target.d/10-nomad-service.conf << EOF
+[Unit]
+Requires=nomad.service
+After=nomad.service
+EOF
 
 # Create extension release
 createExtensionRelease nomad-"$latest_version" true

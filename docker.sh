@@ -96,12 +96,14 @@ cp ../services/docker.defaults usr/local/lib/systemd/system/
 
 cat > usr/local/lib/systemd/system/multi-user.target.d/10-containerd-service.conf << EOF
 [Unit]
-Wants=containerd.service
+Requires=containerd.service
+After=containerd.service
 EOF
 
 cat > usr/local/lib/systemd/system/sockets.target.d/10-docker-socket.conf << EOF
 [Unit]
-Wants=docker.socket
+Requires=docker.socket
+After=docker.socket
 EOF
 
 # Clean up

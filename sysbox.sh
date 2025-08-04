@@ -228,10 +228,11 @@ cp ../services/sysbox-fs.service usr/local/lib/systemd/system/
 cp ../services/sysbox-mgr.service usr/local/lib/systemd/system/
 cp ../services/sysbox.service usr/local/lib/systemd/system/
 
-# Create systemd target configuration to enable the services
+# Create systemd target configuration to enable and start the services
 cat > "usr/local/lib/systemd/system/multi-user.target.d/10-sysbox-service.conf" << 'EOF'
 [Unit]
-Wants=sysbox.service
+Requires=sysbox.service
+After=sysbox.service
 EOF
 
 # Create the sysctl configuration for Sysbox
