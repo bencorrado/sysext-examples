@@ -7,7 +7,7 @@ After=network-online.target
 [Service]
 Type=notify
 ExecStartPre=/bin/mkdir -p /usr/local/sysbox
-ExecStart=/usr/local/bin/sysbox-mgr --data-root /usr/local/sysbox
+ExecStart=/usr/local/bin/sysbox-mgr --data-root /usr/local/sysbox --disable-idmapped-mount
 TimeoutStartSec=45
 TimeoutStopSec=90
 StartLimitInterval=0
