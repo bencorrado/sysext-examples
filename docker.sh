@@ -86,6 +86,25 @@ oom_score = -999
 runtime_type = "io.containerd.runc.v2"
 [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]
 SystemdCgroup = true
+
+[plugins."io.containerd.grpc.v1.cri".containerd.runtimes.sysbox-runc]
+# sysbox-runc runtime configuration
+runtime_type = "io.containerd.runc.v2"
+[plugins."io.containerd.grpc.v1.cri".containerd.runtimes.sysbox-runc.options]
+BinaryName = "/usr/local/bin/sysbox-runc"
+SystemdCgroup = true
+EOF
+
+# Create Docker daemon configuration with sysbox-runc runtime support
+mkdir -p usr/local/etc/docker
+cat > usr/local/etc/docker/daemon.json << EOF
+{
+  "runtimes": {
+    "sysbox-runc": {
+      "path": "/usr/local/bin/sysbox-runc"
+    }
+  }
+}
 EOF
 
 # Copy systemd service files

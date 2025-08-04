@@ -1,7 +1,7 @@
 [Unit]
 Description=Docker Application Container Engine
-After=containerd.service docker.socket network-online.target
-Wants=network-online.target
+After=containerd.service docker.socket network-online.target sysbox.service
+Wants=network-online.target sysbox.service
 Requires=containerd.service docker.socket
 
 [Service]
