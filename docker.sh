@@ -113,7 +113,7 @@ Requires=docker.socket
 After=docker.socket
 EOF
 
-# Clean up
+# Clean up files
 rm -Rf "$tmpDir"
 createExtensionRelease docker-"$latest_version" true
 find . -type d -empty -delete

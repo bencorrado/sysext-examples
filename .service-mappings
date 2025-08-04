@@ -1,1 +1,1 @@
-tailscaled
+docker containerd docker.socket
