@@ -1,5 +1,5 @@
 # Docker daemon options
-DOCKER_OPTS="--add-runtime sysbox-runc=/usr/local/bin/sysbox-runc"
+DOCKER_OPTS=""
 # Docker cgroups options
 DOCKER_CGROUPS=""
 # Docker BIP options

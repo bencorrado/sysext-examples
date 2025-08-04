@@ -9,6 +9,7 @@ Type=notify
 EnvironmentFile=-/etc/default/docker
 EnvironmentFile=-/run/flannel/flannel_docker_opts.env
 Environment=DOCKER_SELINUX=--selinux-enabled=true
+Environment=DOCKER_OPTS=--add-runtime sysbox-runc=/usr/local/bin/sysbox-runc
 ExecStart=/usr/local/bin/dockerd --host=fd:// --containerd=/run/containerd/containerd.sock $DOCKER_SELINUX $DOCKER_OPTS $DOCKER_CGROUPS $DOCKER_OPT_BIP $DOCKER_OPT_MTU $DOCKER_OPT_IPMASQ
 ExecReload=/bin/kill -s HUP $MAINPID
 LimitNOFILE=1048576
