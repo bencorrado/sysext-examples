@@ -5,8 +5,10 @@ After=network.target
 [Service]
 Delegate=yes
 Environment=CONTAINERD_CONFIG=/usr/local/share/containerd/config.toml
-ExecStartPre=mkdir -p /run/docker/libcontainerd
+ExecStartPre=/bin/chown root:root /usr/local/containerd
 ExecStartPre=ln -fs /run/containerd/containerd.sock /run/docker/libcontainerd/docker-containerd.sock
+ExecStartPre=/bin/mkdir -p /run/docker/libcontainerd
+ExecStartPre=/bin/mkdir -p /usr/local/containerd
 ExecStart=/usr/local/bin/containerd --config ${CONTAINERD_CONFIG}
 KillMode=process
 Restart=always
