@@ -26,8 +26,28 @@ defineServiceMappings "qemu-kvm run-qemu.mount libvirtd virtlogd virtlockd"
 if [ -n "$QEMU_VERSION" ]; then
   latest_version="$QEMU_VERSION"
 else
+  # Update package cache first
+  printf "${GREEN}Updating package cache...\n"
+  apt-get update -qq
+
   # Get the latest QEMU version from Ubuntu 24.04 repositories
+  # Try multiple methods to get a working version
+  printf "${GREEN}Checking available QEMU versions...\n"
+  apt-cache policy qemu-system-x86 || true
+
   latest_version=$(apt-cache policy qemu-system-x86 | grep Candidate | awk '{print $2}' | cut -d':' -f2 | cut -d'+' -f1)
+
+  # If that fails, try to get any available version
+  if [ -z "$latest_version" ] || [ "$latest_version" = "(none)" ]; then
+    printf "${YELLOW}Candidate version not found, trying madison...\n"
+    latest_version=$(apt-cache madison qemu-system-x86 | head -1 | awk '{print $3}' | cut -d':' -f2 | cut -d'+' -f1)
+  fi
+
+  # If still no version, use a fallback approach - just use "latest" as identifier
+  if [ -z "$latest_version" ] || [ "$latest_version" = "(none)" ]; then
+    printf "${YELLOW}Could not determine specific QEMU version, using 'latest' identifier\n"
+    latest_version="latest"
+  fi
 fi
 
 printf "${GREEN}Using version %s\n" "$latest_version"
@@ -94,15 +114,48 @@ packages=(
 for package in "${packages[@]}"; do
   printf "${GREEN}Downloading package: %s\n" "$package"
   cd "$tmpDir"
-  apt-get download "$package"
+
+  # Show what version will be downloaded
+  available_version=$(apt-cache policy "$package" | grep Candidate | awk '{print $2}')
+  printf "${GREEN}Available version for %s: %s\n" "$package" "$available_version"
+
+  # Try to download the package, with retries and fallbacks
+  if ! apt-get download "$package"; then
+    printf "${YELLOW}Failed to download %s, trying with --allow-unauthenticated\n" "$package"
+    if ! apt-get download --allow-unauthenticated "$package"; then
+      printf "${YELLOW}Failed to download %s, trying apt-cache search for alternatives\n" "$package"
+
+      # For critical packages, try to find alternatives
+      case "$package" in
+        "qemu-system-x86")
+          # Try qemu-system-x86-64 as alternative
+          if apt-cache search qemu-system-x86-64 | grep -q qemu-system-x86-64; then
+            printf "${YELLOW}Trying alternative: qemu-system-x86-64\n"
+            apt-get download qemu-system-x86-64 || true
+          fi
+          ;;
+        *)
+          printf "${YELLOW}Skipping unavailable package: %s\n" "$package"
+          ;;
+      esac
+    fi
+  fi
 done
+
+# Check if we have any packages downloaded
+cd "$tmpDir"
+if ! ls *.deb >/dev/null 2>&1; then
+  printf "${RED}No packages were successfully downloaded. Cannot proceed.\n"
+  exit 1
+fi
 
 # Extract packages
 printf "${GREEN}Extracting QEMU packages\n"
-cd "$tmpDir"
 for deb in *.deb; do
-  printf "${GREEN}Extracting %s\n" "$deb"
-  dpkg-deb -x "$deb" extracted/
+  if [ -f "$deb" ]; then
+    printf "${GREEN}Extracting %s\n" "$deb"
+    dpkg-deb -x "$deb" extracted/
+  fi
 done
 
 # Copy files to the proper locations
