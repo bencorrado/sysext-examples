@@ -28,7 +28,11 @@ if [ -n "$QEMU_VERSION" ]; then
 else
   # Update package cache first
   printf "${GREEN}Updating package cache...\n"
-  apt-get update -qq
+  if command -v sudo >/dev/null 2>&1; then
+    sudo apt-get update -qq
+  else
+    apt-get update -qq
+  fi
 
   # Get the latest QEMU version from Ubuntu 24.04 repositories
   # Try multiple methods to get a working version
@@ -91,6 +95,8 @@ printf "${GREEN}Downloading QEMU packages\n"
 
 # Create a temporary directory for package extraction
 tmpDir=$(mktemp -d)
+# Ensure the temporary directory is accessible by apt
+chmod 755 "$tmpDir"
 
 # Download the main QEMU packages we need
 packages=(
@@ -120,6 +126,7 @@ for package in "${packages[@]}"; do
   printf "${GREEN}Available version for %s: %s\n" "$package" "$available_version"
 
   # Try to download the package, with retries and fallbacks
+  # Note: apt-get download should not use sudo to avoid permission issues
   if ! apt-get download "$package"; then
     printf "${YELLOW}Failed to download %s, trying with --allow-unauthenticated\n" "$package"
     if ! apt-get download --allow-unauthenticated "$package"; then
