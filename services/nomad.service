@@ -12,6 +12,8 @@ StartLimitBurst=3
 [Service]
 Type=notify
 EnvironmentFile=-/oem/nomad/.env
+ExecStartPre=/bin/bash -c 'echo $MAINPID > /sys/fs/cgroup/cpuset/system/cgroup.procs'
+CPUAffinity=0-1 12-13
 ExecStart=/usr/local/bin/nomad agent -config=/oem/nomad/client.hcl
 ExecReload=/bin/kill -HUP $MAINPID
 KillMode=process

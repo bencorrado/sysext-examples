@@ -483,6 +483,27 @@ else
 fi
 
 echo ""
+echo "=== Kernel Address Security ==="
+if grep -q "kptr_restrict" /proc/sys/kernel/kptr_restrict 2>/dev/null; then
+    kptr_value=$(cat /proc/sys/kernel/kptr_restrict 2>/dev/null)
+    case "$kptr_value" in
+        0) echo "❌ Kernel Pointers: Exposed (kptr_restrict=0)" ;;
+        1) echo "⚠️  Kernel Pointers: Restricted for unprivileged (kptr_restrict=1)" ;;
+        2) echo "✅ Kernel Pointers: Hidden (kptr_restrict=2)" ;;
+        *) echo "⚠️  Kernel Pointers: Unknown setting ($kptr_value)" ;;
+    esac
+else
+    echo "❌ Kernel Pointers: kptr_restrict not available"
+fi
+
+if dmesg | grep -q "unhashed kernel memory addresses" 2>/dev/null; then
+    echo "❌ Address Exposure: Kernel addresses visible in logs"
+    echo "   Recommendation: Add 'kptr_restrict=2' to kernel command line"
+else
+    echo "✅ Address Exposure: Kernel addresses properly hidden"
+fi
+
+echo ""
 echo "=== Intel Memory Encryption ==="
 if grep -q tme /proc/cpuinfo; then
     echo "✅ TME Support: Available in CPU"
@@ -533,12 +554,241 @@ if echo "$cpu_flags" | grep -q mpx; then
 else
     echo "❌ MPX: Not supported"
 fi
+
+echo ""
+echo "=== Memory Error Detection (EDAC) ==="
+if [ -d /sys/devices/system/edac/mc ]; then
+    edac_controllers=$(find /sys/devices/system/edac/mc -name "mc*" | wc -l)
+    if [ "$edac_controllers" -gt 0 ]; then
+        echo "✅ EDAC Controllers: $edac_controllers detected"
+        for mc in /sys/devices/system/edac/mc/mc*; do
+            if [ -f "$mc/mc_name" ]; then
+                mc_name=$(cat "$mc/mc_name" 2>/dev/null)
+                mc_num=$(basename "$mc")
+                echo "   $mc_num: $mc_name"
+            fi
+        done
+    else
+        echo "❌ EDAC Controllers: None detected"
+    fi
+
+    # Check for EDAC errors
+    if [ -f /sys/devices/system/edac/mc/mc0/ce_count ]; then
+        ce_count=$(cat /sys/devices/system/edac/mc/mc0/ce_count 2>/dev/null || echo "0")
+        ue_count=$(cat /sys/devices/system/edac/mc/mc0/ue_count 2>/dev/null || echo "0")
+        echo "   Correctable Errors: $ce_count"
+        echo "   Uncorrectable Errors: $ue_count"
+    fi
+else
+    echo "❌ EDAC: Not available or not loaded"
+fi
+
+# Check for EDAC resource conflicts
+if dmesg | grep -q "igen6_register_mci.*mapping multiple BARs" 2>/dev/null; then
+    echo "⚠️  EDAC Warning: Resource mapping conflict detected"
+    echo "   Recommendation: Add 'pci=realloc iommu.strict=1' to kernel command line"
+else
+    echo "✅ EDAC Resources: No conflicts detected"
+fi
+
+echo ""
+echo "=== Additional Security Features ==="
+
+# Check KASLR
+if grep -q "kaslr" /proc/cmdline 2>/dev/null || dmesg | grep -q "KASLR enabled" 2>/dev/null; then
+    echo "✅ KASLR: Enabled"
+else
+    echo "⚠️  KASLR: Status unknown (may be enabled by default)"
+fi
+
+# Check vsyscall
+if grep -q "vsyscall=none" /proc/cmdline 2>/dev/null; then
+    echo "✅ vsyscall: Disabled (secure)"
+elif grep -q "vsyscall=emulate" /proc/cmdline 2>/dev/null; then
+    echo "⚠️  vsyscall: Emulation mode (less secure)"
+else
+    echo "❌ vsyscall: Default mode (consider vsyscall=none)"
+fi
+
+# Check audit
+if grep -q "audit=1" /proc/cmdline 2>/dev/null; then
+    echo "✅ Kernel Audit: Enabled"
+else
+    echo "⚠️  Kernel Audit: Not explicitly enabled"
+fi
+
+# Check module signature enforcement
+if grep -q "module.sig_enforce=1" /proc/cmdline 2>/dev/null; then
+    echo "✅ Module Signatures: Enforced"
+else
+    echo "⚠️  Module Signatures: Not enforced"
+fi
+
+# Check slab_nomerge
+if grep -q "slab_nomerge" /proc/cmdline 2>/dev/null; then
+    echo "✅ SLAB No-merge: Enabled (prevents cache-based exploits)"
+else
+    echo "⚠️  SLAB No-merge: Not enabled"
+fi
+
+# Check page poisoning
+if grep -q "page_poison=1" /proc/cmdline 2>/dev/null; then
+    echo "✅ Page Poisoning: Enabled"
+else
+    echo "⚠️  Page Poisoning: Not enabled (init_on_free provides similar protection)"
+fi
+
+echo ""
+echo "=== Container/Docker Support ==="
+
+# Check cgroup v2
+if [ -f /sys/fs/cgroup/cgroup.controllers ]; then
+    echo "✅ Cgroup v2: Available"
+    controllers=$(cat /sys/fs/cgroup/cgroup.controllers 2>/dev/null)
+    echo "   Controllers: $controllers"
+else
+    echo "⚠️  Cgroup v2: Not available (check systemd.unified_cgroup_hierarchy=1)"
+fi
+
+# Check AppArmor
+if grep -q "apparmor=1" /proc/cmdline 2>/dev/null; then
+    echo "✅ AppArmor: Enabled via kernel parameter"
+elif [ -d /sys/kernel/security/apparmor ]; then
+    echo "✅ AppArmor: Available"
+    if [ -f /sys/kernel/security/apparmor/profiles ]; then
+        profile_count=$(wc -l < /sys/kernel/security/apparmor/profiles 2>/dev/null || echo "0")
+        echo "   Loaded profiles: $profile_count"
+    fi
+else
+    echo "❌ AppArmor: Not available"
+fi
+
+# Check memory cgroup
+if grep -q "cgroup_enable=memory" /proc/cmdline 2>/dev/null; then
+    echo "✅ Memory Cgroup: Explicitly enabled"
+elif [ -f /sys/fs/cgroup/memory.max ] || [ -f /sys/fs/cgroup/memory/memory.limit_in_bytes ]; then
+    echo "✅ Memory Cgroup: Available"
+else
+    echo "⚠️  Memory Cgroup: Status unclear"
+fi
+
+# Check transparent hugepages
+if [ -f /sys/kernel/mm/transparent_hugepage/enabled ]; then
+    thp_status=$(cat /sys/kernel/mm/transparent_hugepage/enabled 2>/dev/null)
+    if echo "$thp_status" | grep -q "\[madvise\]"; then
+        echo "✅ Transparent Hugepages: madvise (optimal for containers)"
+    elif echo "$thp_status" | grep -q "\[always\]"; then
+        echo "⚠️  Transparent Hugepages: always (may cause container issues)"
+    elif echo "$thp_status" | grep -q "\[never\]"; then
+        echo "⚠️  Transparent Hugepages: never (may impact performance)"
+    else
+        echo "⚠️  Transparent Hugepages: $thp_status"
+    fi
+else
+    echo "❌ Transparent Hugepages: Not available"
+fi
+
+# Check for Docker-specific kernel features
+echo ""
+echo "=== Docker Kernel Features ==="
+docker_features=("bridge" "veth" "iptables" "netfilter" "overlay" "aufs" "devicemapper")
+for feature in "${docker_features[@]}"; do
+    if lsmod | grep -q "$feature" 2>/dev/null; then
+        echo "✅ $feature: Loaded"
+    else
+        echo "⚠️  $feature: Not loaded (may load on demand)"
+    fi
+done
+EOF
+
+# USB authorization helper script
+cat > usr/local/share/qemu/scripts/usb-authorize.sh << 'EOF'
+#!/bin/bash
+# USB Device Authorization Helper
+
+if [ "$#" -eq 0 ]; then
+    echo "USB Device Authorization Helper"
+    echo ""
+    echo "Usage:"
+    echo "  $0 list                    # List all USB devices and their status"
+    echo "  $0 authorize <device>      # Authorize specific device (e.g., 3-2)"
+    echo "  $0 authorize-hub <hub>     # Authorize all devices on hub (e.g., usb3)"
+    echo "  $0 revoke <device>         # Revoke device authorization"
+    echo ""
+    exit 1
+fi
+
+case "$1" in
+    list)
+        echo "=== USB Device Authorization Status ==="
+        for device in /sys/bus/usb/devices/*/; do
+            if [ -f "$device/authorized" ]; then
+                device_name=$(basename "$device")
+                authorized=$(cat "$device/authorized" 2>/dev/null)
+                if [ -f "$device/product" ]; then
+                    product=$(cat "$device/product" 2>/dev/null)
+                    vendor=$(cat "$device/manufacturer" 2>/dev/null || echo "Unknown")
+                    status="❌ BLOCKED"
+                    [ "$authorized" = "1" ] && status="✅ AUTHORIZED"
+                    echo "$device_name: $status - $vendor $product"
+                fi
+            fi
+        done
+        ;;
+    authorize)
+        if [ -z "$2" ]; then
+            echo "Error: Please specify device (e.g., 3-2)"
+            exit 1
+        fi
+        device_path="/sys/bus/usb/devices/$2/authorized"
+        if [ -f "$device_path" ]; then
+            echo 1 > "$device_path"
+            echo "✅ Authorized device $2"
+        else
+            echo "❌ Device $2 not found"
+            exit 1
+        fi
+        ;;
+    authorize-hub)
+        if [ -z "$2" ]; then
+            echo "Error: Please specify hub (e.g., usb3)"
+            exit 1
+        fi
+        hub_path="/sys/bus/usb/devices/$2/authorized_default"
+        if [ -f "$hub_path" ]; then
+            echo 1 > "$hub_path"
+            echo "✅ Authorized all devices on hub $2"
+        else
+            echo "❌ Hub $2 not found"
+            exit 1
+        fi
+        ;;
+    revoke)
+        if [ -z "$2" ]; then
+            echo "Error: Please specify device (e.g., 3-2)"
+            exit 1
+        fi
+        device_path="/sys/bus/usb/devices/$2/authorized"
+        if [ -f "$device_path" ]; then
+            echo 0 > "$device_path"
+            echo "❌ Revoked authorization for device $2"
+        else
+            echo "❌ Device $2 not found"
+            exit 1
+        fi
+        ;;
+    *)
+        echo "Unknown command: $1"
+        exit 1
+        ;;
+esac
 EOF
 
 chmod +x usr/local/share/qemu/scripts/setup-vtpm2.sh
 chmod +x usr/local/share/qemu/scripts/txt-capability-check.sh
 chmod +x usr/local/share/qemu/scripts/usb-nomad-enumerate.sh
 chmod +x usr/local/share/qemu/scripts/security-status-check.sh
+chmod +x usr/local/share/qemu/scripts/usb-authorize.sh
 
 # List installed binaries
 printf "${GREEN}Installed QEMU binaries:\n"
@@ -579,6 +829,7 @@ printf "${GREEN}Helper scripts:\n"
 printf "${GREEN}  - vTPM2 setup: /usr/local/share/qemu/scripts/setup-vtpm2.sh\n"
 printf "${GREEN}  - TXT capability check: /usr/local/share/qemu/scripts/txt-capability-check.sh\n"
 printf "${GREEN}  - USB enumeration: /usr/local/share/qemu/scripts/usb-nomad-enumerate.sh\n"
+printf "${GREEN}  - USB authorization: /usr/local/share/qemu/scripts/usb-authorize.sh\n"
 printf "${GREEN}  - Security status: /usr/local/share/qemu/scripts/security-status-check.sh\n"
 printf "${GREEN}Services: qemu-kvm, libvirtd, virtlogd, virtlockd, run-qemu.mount\n"
 printf "${GREEN}To use KVM acceleration, ensure /dev/kvm is available and accessible\n"
