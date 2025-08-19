@@ -181,7 +181,7 @@ Wants=qemu-kvm.service run-qemu.mount libvirtd.service
 After=qemu-kvm.service run-qemu.mount libvirtd.service
 EOF
 
-# Set proper permissions for network helpers
+# Set the proper permissions for network helpers
 chmod +x etc/qemu-ifup 2>/dev/null || true
 chmod +x etc/qemu-ifdown 2>/dev/null || true
 chmod u+s usr/local/lib/qemu/qemu-bridge-helper 2>/dev/null || true
