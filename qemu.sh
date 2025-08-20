@@ -197,16 +197,16 @@ if apt-cache show seabios >/dev/null 2>&1; then
   if ls seabios_*.deb >/dev/null 2>&1; then
     dpkg-deb -x seabios_*.deb seabios_extracted/
     if [ -f "seabios_extracted/usr/share/seabios/bios.bin" ]; then
-      # Copy SeaBIOS once, then create hard links for other names QEMU might look for
+      # Copy SeaBIOS with multiple names that QEMU might look for
       cp "seabios_extracted/usr/share/seabios/bios.bin" "$QEMU_DIR/usr/local/share/qemu/seabios.bin"
-      ln "$QEMU_DIR/usr/local/share/qemu/seabios.bin" "$QEMU_DIR/usr/local/share/qemu/bios.bin"
-      ln "$QEMU_DIR/usr/local/share/qemu/seabios.bin" "$QEMU_DIR/usr/local/share/qemu/bios-256k.bin"
-      printf "${GREEN}SeaBIOS installed with hard links for multiple names\n"
+      cp "seabios_extracted/usr/share/seabios/bios.bin" "$QEMU_DIR/usr/local/share/qemu/bios.bin"
+      cp "seabios_extracted/usr/share/seabios/bios.bin" "$QEMU_DIR/usr/local/share/qemu/bios-256k.bin"
+      printf "${GREEN}SeaBIOS installed with multiple names\n"
     elif [ -f "seabios_extracted/usr/share/qemu/bios.bin" ]; then
       cp "seabios_extracted/usr/share/qemu/bios.bin" "$QEMU_DIR/usr/local/share/qemu/seabios.bin"
-      ln "$QEMU_DIR/usr/local/share/qemu/seabios.bin" "$QEMU_DIR/usr/local/share/qemu/bios.bin"
-      ln "$QEMU_DIR/usr/local/share/qemu/seabios.bin" "$QEMU_DIR/usr/local/share/qemu/bios-256k.bin"
-      printf "${GREEN}SeaBIOS installed from qemu path with hard links\n"
+      cp "seabios_extracted/usr/share/qemu/bios.bin" "$QEMU_DIR/usr/local/share/qemu/bios.bin"
+      cp "seabios_extracted/usr/share/qemu/bios.bin" "$QEMU_DIR/usr/local/share/qemu/bios-256k.bin"
+      printf "${GREEN}SeaBIOS installed from qemu path with multiple names\n"
     fi
     rm -rf seabios_*.deb seabios_extracted/
   fi
@@ -250,14 +250,11 @@ else
   printf "${YELLOW}iPXE package not available\n"
 fi
 
-# Create essential BIOS files if they don't exist
-if [ ! -f "$QEMU_DIR/usr/local/share/qemu/bios-256k.bin" ]; then
-  printf "${YELLOW}Creating placeholder BIOS files (QEMU will use built-in)\n"
-  # Create one placeholder file, then hard link for other names QEMU might look for
-  touch "$QEMU_DIR/usr/local/share/qemu/seabios.bin"
-  ln "$QEMU_DIR/usr/local/share/qemu/seabios.bin" "$QEMU_DIR/usr/local/share/qemu/bios.bin"
-  ln "$QEMU_DIR/usr/local/share/qemu/seabios.bin" "$QEMU_DIR/usr/local/share/qemu/bios-256k.bin"
-  ln "$QEMU_DIR/usr/local/share/qemu/seabios.bin" "$QEMU_DIR/usr/local/share/qemu/bios-microvm.bin"
+# Check if BIOS files were successfully installed
+if [ -f "$QEMU_DIR/usr/local/share/qemu/bios-256k.bin" ] && [ -s "$QEMU_DIR/usr/local/share/qemu/bios-256k.bin" ]; then
+  printf "${GREEN}BIOS files successfully installed\n"
+else
+  printf "${YELLOW}BIOS files not found - QEMU will use built-in BIOS\n"
 fi
 
 # Copy QEMU library modules (plugins) from qemu-system-common and qemu-block-extra
