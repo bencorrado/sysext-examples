@@ -90,6 +90,7 @@ mkdir -p usr/local/lib/x86_64-linux-gnu/qemu
 mkdir -p usr/local/lib/qemu
 mkdir -p usr/local/share/qemu/scripts
 mkdir -p etc/default
+mkdir -p etc/qemu
 
 printf "${GREEN}Downloading QEMU packages\n"
 
@@ -183,6 +184,73 @@ if [ -d usr/share/qemu ]; then
   cp -a usr/share/qemu/* "$QEMU_DIR/usr/local/share/qemu/" 2>/dev/null || true
 fi
 
+# Download additional BIOS files using apt-get
+printf "${GREEN}Downloading BIOS files using package manager\n"
+
+# Add SeaBIOS to packages list and download it
+printf "${GREEN}Adding SeaBIOS package\n"
+if apt-cache show seabios >/dev/null 2>&1; then
+  printf "${GREEN}Downloading SeaBIOS package\n"
+  apt-get download seabios
+
+  # Extract SeaBIOS
+  if ls seabios_*.deb >/dev/null 2>&1; then
+    dpkg-deb -x seabios_*.deb seabios_extracted/
+    if [ -f "seabios_extracted/usr/share/seabios/bios.bin" ]; then
+      cp "seabios_extracted/usr/share/seabios/bios.bin" "$QEMU_DIR/usr/local/share/qemu/seabios.bin"
+      printf "${GREEN}SeaBIOS installed from package\n"
+    elif [ -f "seabios_extracted/usr/share/qemu/bios.bin" ]; then
+      cp "seabios_extracted/usr/share/qemu/bios.bin" "$QEMU_DIR/usr/local/share/qemu/seabios.bin"
+      printf "${GREEN}SeaBIOS installed from package (qemu path)\n"
+    fi
+    rm -rf seabios_*.deb seabios_extracted/
+  fi
+else
+  printf "${YELLOW}SeaBIOS package not available\n"
+fi
+
+# Add OVMF if available
+printf "${GREEN}Checking for OVMF UEFI firmware\n"
+if apt-cache show ovmf >/dev/null 2>&1; then
+  printf "${GREEN}Downloading OVMF package\n"
+  apt-get download ovmf
+
+  if ls ovmf_*.deb >/dev/null 2>&1; then
+    dpkg-deb -x ovmf_*.deb ovmf_extracted/
+    if [ -d "ovmf_extracted/usr/share/OVMF" ]; then
+      cp -r ovmf_extracted/usr/share/OVMF/* "$QEMU_DIR/usr/local/share/qemu/" 2>/dev/null || true
+      printf "${GREEN}OVMF UEFI firmware installed\n"
+    fi
+    rm -rf ovmf_*.deb ovmf_extracted/
+  fi
+else
+  printf "${YELLOW}OVMF package not available\n"
+fi
+
+# Add iPXE ROMs if available
+printf "${GREEN}Checking for iPXE network boot ROMs\n"
+if apt-cache show ipxe-qemu >/dev/null 2>&1; then
+  printf "${GREEN}Downloading iPXE package\n"
+  apt-get download ipxe-qemu
+
+  if ls ipxe-qemu_*.deb >/dev/null 2>&1; then
+    dpkg-deb -x ipxe-qemu_*.deb ipxe_extracted/
+    if [ -d "ipxe_extracted/usr/lib/ipxe/qemu" ]; then
+      cp ipxe_extracted/usr/lib/ipxe/qemu/* "$QEMU_DIR/usr/local/share/qemu/" 2>/dev/null || true
+      printf "${GREEN}iPXE ROMs installed\n"
+    fi
+    rm -rf ipxe-qemu_*.deb ipxe_extracted/
+  fi
+else
+  printf "${YELLOW}iPXE package not available\n"
+fi
+
+# Create essential BIOS files if they don't exist
+if [ ! -f "$QEMU_DIR/usr/local/share/qemu/seabios.bin" ]; then
+  printf "${YELLOW}Creating placeholder SeaBIOS (QEMU will use built-in)\n"
+  touch "$QEMU_DIR/usr/local/share/qemu/seabios.bin"
+fi
+
 # Copy QEMU library modules (plugins) from qemu-system-common and qemu-block-extra
 if [ -d usr/lib/x86_64-linux-gnu/qemu ]; then
   cp -a usr/lib/x86_64-linux-gnu/qemu/* "$QEMU_DIR/usr/local/lib/x86_64-linux-gnu/qemu/" 2>/dev/null || true
@@ -245,6 +313,34 @@ EOF
 chmod +x etc/qemu-ifup 2>/dev/null || true
 chmod +x etc/qemu-ifdown 2>/dev/null || true
 chmod u+s usr/local/lib/qemu/qemu-bridge-helper 2>/dev/null || true
+
+# Create QEMU configuration file
+printf "${GREEN}Creating QEMU configuration\n"
+cat > etc/qemu/qemu.conf << 'EOF'
+# QEMU Configuration
+# This file configures QEMU system-wide settings
+
+# BIOS and firmware search paths
+firmware_path = ["/usr/local/share/qemu"]
+
+# Default machine settings
+default_machine = "q35"
+
+# Security settings
+security_default_confined = 0
+security_require_confined = 0
+
+# User and group for QEMU processes
+user = "root"
+group = "root"
+
+# Memory settings
+max_files = 32768
+max_processes = 131072
+
+# Network settings
+bridge_helper = "/usr/local/libexec/qemu-bridge-helper"
+EOF
 
 # Create helper scripts
 printf "${GREEN}Creating helper scripts\n"
@@ -817,7 +913,7 @@ printf "${GREEN}Done\n"
 printf "${GREEN}QEMU system extension created with Intel Gen 12 processor and security support\n"
 printf "${GREEN}Included packages: qemu-system-x86, qemu-system-common, qemu-system-data, qemu-utils, qemu-block-extra\n"
 printf "${GREEN}                   swtpm, swtpm-tools, libtpms0, libvirt-daemon-system, libvirt-clients\n"
-printf "${GREEN}                   libvirt-daemon-driver-qemu, trousers, libusb-1.0-0, usbutils\n"
+printf "${GREEN}                   libvirt-daemon-driver-qemu, trousers, libusb-1.0-0, usbutils, libfdt1\n"
 printf "${GREEN}Available binaries: qemu-system-x86_64, qemu-img, qemu-io, qemu-nbd, qemu-storage-daemon\n"
 printf "${GREEN}                    swtpm, virsh, virt-install, libvirtd\n"
 printf "${GREEN}Security features:\n"
