@@ -15,9 +15,36 @@ on:
   workflow_dispatch:
     inputs:
       specific_sysext:
-        description: 'Specific sysext to build (leave empty for changed ones)'
+        description: 'Select a specific sysext to build'
+        required: true
+        type: choice
+        options:
+          - qemu
+          - k3s
+          - sbctl
+          - tailscale
+          - helm
+          - k9s
+          - nebula
+          - pulumi_esc
+          - habitat
+          - incus
+          - openbao
+          - alloy
+          - speedtest
+          - miniupnpc
+          - docker
+          - docker-compose
+          - falco
+          - librespeed-cli
+          - sysbox
+          - nomad
+        default: docker
+      build_all:
+        description: 'Build all sysexts (ignores specific selection)'
         required: false
-        type: string
+        type: boolean
+        default: false
   schedule:
     - cron: "0 15 * * *"
 
@@ -48,10 +75,16 @@ jobs:
         run: |
           ALL_SYSEXTS=("qemu" "k3s" "sbctl" "tailscale" "helm" "k9s" "nebula" "pulumi_esc" "habitat" "incus" "openbao" "alloy" "speedtest" "miniupnpc" "docker" "docker-compose" "falco" "librespeed-cli" "sysbox" "nomad")
 
+          # If workflow_dispatch with build_all option
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.build_all }}" == "true" ]]; then
+            MATRIX="{\"item\":[\"${ALL_SYSEXTS[*]}\"]}"
+            MATRIX="${MATRIX// /\",\"}"
+            echo "Manual trigger: building all sysexts"
+
           # If workflow_dispatch with specific_sysext is provided
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ github.event.inputs.specific_sysext }}" ]]; then
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ github.event.inputs.specific_sysext }}" ]]; then
             MATRIX="{\"item\":[\"${{ github.event.inputs.specific_sysext }}\"]}"
-            echo "Building specific sysext: ${{ github.event.inputs.specific_sysext }}"
+            echo "Manual trigger: building specific sysext: ${{ github.event.inputs.specific_sysext }}"
 
           # If scheduled run, build all
           elif [[ "${{ github.event_name }}" == "schedule" ]]; then
