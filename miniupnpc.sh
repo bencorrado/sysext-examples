@@ -35,7 +35,7 @@ else
     # If HTML parsing fails, fall back to a default version
     if [ -z "$latest_version" ]; then
       printf "${YELLOW}Failed to parse HTML page, falling back to default version\n"
-      latest_version="2.3.2"
+      latest_version="2.3.3"
     fi
   fi
 fi
@@ -120,28 +120,87 @@ cd "$tmpDir/miniupnpc-$latest_version" || exit 1
 printf "${GREEN}Building MiniUPnPc\n"
 make
 
-printf "${GREEN}Installing MiniUPnPc\n"
-# Use the built-in installation mechanism with a custom prefix
-INSTALLPREFIX="$current_dir/usr/local" make install
+printf "${GREEN}Installing static binaries only\n"
+# Install only the static binaries to avoid dependency issues
+cp build/upnpc-static "$current_dir/usr/local/bin/upnpc"
+cp build/upnp-listdevices-static "$current_dir/usr/local/bin/upnp-listdevices"
 
-# Copy documentation if not already installed
-printf "${GREEN}Copying documentation\n"
+# Copy the external-ip script if it exists
+if [ -f "external-ip.sh" ]; then
+  cp external-ip.sh "$current_dir/usr/local/bin/external-ip"
+fi
+
+# Download and build NAT-PMP client
+printf "${GREEN}Downloading and building NAT-PMP client\n"
+natpmp_tmpdir=$(mktemp -d)
+curl -fsSL "http://miniupnp.free.fr/files/libnatpmp-20150609.tar.gz" -o "$natpmp_tmpdir/libnatpmp.tar.gz"
+tar xzf "$natpmp_tmpdir/libnatpmp.tar.gz" -C "$natpmp_tmpdir"
+cd "$natpmp_tmpdir/libnatpmp-20150609" || exit 1
+
+# Build NAT-PMP client
+make natpmpc-static
+
+# Install NAT-PMP client
+cp natpmpc-static "$current_dir/usr/local/bin/natpmpc"
+
+# Install NAT-PMP man page if it exists
+if [ -f "natpmpc.1" ]; then
+  mkdir -p "$current_dir/usr/local/share/man/man1"
+  cp natpmpc.1 "$current_dir/usr/local/share/man/man1/"
+  gzip -f "$current_dir/usr/local/share/man/man1/natpmpc.1"
+fi
+
+# Download and build PCP client (Port Control Protocol)
+printf "${GREEN}Downloading and building PCP client\n"
+pcp_tmpdir=$(mktemp -d)
+cd "$pcp_tmpdir" || exit 1
+git clone https://github.com/libpcpnatpmp/libpcpnatpmp.git
+cd libpcpnatpmp || exit 1
+
+# Build PCP client manually (static linking)
+gcc -I lib/include -I lib -I lib/src -I lib/src/net -static -o pcpnatpmpc \
+    cli-client/pcpnatpmpc.c lib/src/*.c lib/src/net/*.c -lm
+
+# Install PCP client
+cp pcpnatpmpc "$current_dir/usr/local/bin/pcpnatpmpc"
+
+# Return to MiniUPnPc directory
+cd "$current_dir/../miniupnpc-$latest_version" || exit 1
+
+# Clean up build directories
+rm -rf "$natpmp_tmpdir" "$pcp_tmpdir"
+
+# Install headers for development (optional)
+printf "${GREEN}Installing development headers\n"
+mkdir -p "$current_dir/usr/local/include/miniupnpc"
+if ls include/*.h >/dev/null 2>&1; then
+  cp include/*.h "$current_dir/usr/local/include/miniupnpc/"
+fi
+
+# Install man page
+printf "${GREEN}Installing documentation\n"
+mkdir -p "$current_dir/usr/local/share/man/man3"
+if [ -f "man3/miniupnpc.3" ]; then
+  cp man3/miniupnpc.3 "$current_dir/usr/local/share/man/man3/"
+  gzip -f "$current_dir/usr/local/share/man/man3/miniupnpc.3"
+fi
+
+# Copy additional documentation to doc directory
+printf "${GREEN}Copying additional documentation\n"
 mkdir -p "$current_dir/usr/local/share/doc/miniupnpc/"
-if [ -f "README" ]; then
-  cp README "$current_dir/usr/local/share/doc/miniupnpc/"
-elif [ -f "README.md" ]; then
-  cp README.md "$current_dir/usr/local/share/doc/miniupnpc/"
-elif [ -f "README.txt" ]; then
-  cp README.txt "$current_dir/usr/local/share/doc/miniupnpc/"
-fi
+for doc in README README.md README.txt; do
+  if [ -f "$doc" ]; then
+    cp "$doc" "$current_dir/usr/local/share/doc/miniupnpc/"
+    break
+  fi
+done
 
-if [ -f "LICENSE" ]; then
-  cp LICENSE "$current_dir/usr/local/share/doc/miniupnpc/"
-elif [ -f "LICENCE" ]; then
-  cp LICENCE "$current_dir/usr/local/share/doc/miniupnpc/"
-elif [ -f "COPYING" ]; then
-  cp COPYING "$current_dir/usr/local/share/doc/miniupnpc/"
-fi
+for license in LICENSE LICENCE COPYING; do
+  if [ -f "$license" ]; then
+    cp "$license" "$current_dir/usr/local/share/doc/miniupnpc/"
+    break
+  fi
+done
 
 # Return to the original directory
 cd "$current_dir" || exit 1
