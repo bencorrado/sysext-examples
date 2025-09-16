@@ -204,34 +204,32 @@ fi
 
 # Skip nmap for now - can be added later if needed
 
-# Download and extract MTR package
-printf "${GREEN}Installing MTR from Ubuntu package\n"
-curl -fsSL "http://archive.ubuntu.com/ubuntu/pool/universe/m/mtr/mtr_0.95-1.1build2_amd64.deb" -o mtr.deb
-ar x mtr.deb
+# Download and extract traceroute package
+printf "${GREEN}Installing traceroute from Ubuntu package\n"
+curl -fsSL "http://archive.ubuntu.com/ubuntu/pool/universe/t/traceroute/traceroute_2.1.5-1_amd64.deb" -o traceroute.deb
+ar x traceroute.deb
 # Ubuntu 24.04 uses zstd compression
 if [ -f "data.tar.zst" ]; then
     zstd -d -f data.tar.zst && tar xf data.tar --no-same-owner --no-same-permissions 2>/dev/null || tar xf data.tar 2>/dev/null
 elif [ -f "data.tar.xz" ]; then
     tar xf data.tar.xz --no-same-owner --no-same-permissions 2>/dev/null || tar xf data.tar.xz 2>/dev/null
 fi
-if [ -f "usr/bin/mtr" ]; then
-    cp usr/bin/mtr "$current_dir/usr/local/bin/mtr"
-    cp usr/bin/mtr "$current_dir/usr/local/bin/traceroute"  # Also provide as traceroute
-elif [ -f "usr/bin/mtr-packet" ]; then
-    cp usr/bin/mtr-packet "$current_dir/usr/local/bin/mtr"
-    cp usr/bin/mtr-packet "$current_dir/usr/local/bin/traceroute"
+if [ -f "usr/bin/traceroute.db" ]; then
+    cp usr/bin/traceroute.db "$current_dir/usr/local/bin/traceroute"
+elif [ -f "usr/bin/traceroute" ]; then
+    cp usr/bin/traceroute "$current_dir/usr/local/bin/traceroute"
 else
-    printf "${RED}Warning: mtr binary not found in package\n"
+    printf "${RED}Warning: traceroute binary not found in package\n"
 fi
 
 # Install man pages if available
-if [ -f "usr/share/man/man8/mtr.8.gz" ]; then
-  mkdir -p "$current_dir/usr/local/share/man/man8"
-  cp usr/share/man/man8/mtr.8.gz "$current_dir/usr/local/share/man/man8/"
+if [ -f "usr/share/man/man1/traceroute.1.gz" ]; then
+  mkdir -p "$current_dir/usr/local/share/man/man1"
+  cp usr/share/man/man1/traceroute.1.gz "$current_dir/usr/local/share/man/man1/"
 fi
 
-# Clean up MTR files
-rm -f mtr.deb debian-binary control.tar.* data.tar.*
+# Clean up traceroute files
+rm -f traceroute.deb debian-binary control.tar.* data.tar.*
 
 # Note: nmap has too many dependencies for a static system extension
 # Users can install nmap separately if needed
