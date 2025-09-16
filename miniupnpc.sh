@@ -170,6 +170,76 @@ cd "$current_dir/../miniupnpc-$latest_version" || exit 1
 # Clean up build directories
 rm -rf "$natpmp_tmpdir" "$pcp_tmpdir"
 
+# Download and install network diagnostic tools from Ubuntu packages
+printf "${GREEN}Installing network diagnostic tools from Ubuntu packages\n"
+
+# Install zstd if not available (needed for Ubuntu 24.04 packages)
+if ! command -v zstd >/dev/null 2>&1; then
+    printf "${GREEN}Installing zstd for package extraction\n"
+    apt-get update && apt-get install -y zstd
+fi
+
+# Create temporary directory for package extraction
+pkg_tmpdir=$(mktemp -d)
+cd "$pkg_tmpdir" || exit 1
+
+# Download and extract netcat-openbsd package
+printf "${GREEN}Installing netcat-openbsd from Ubuntu package\n"
+curl -fsSL "http://archive.ubuntu.com/ubuntu/pool/main/n/netcat-openbsd/netcat-openbsd_1.226-1ubuntu2_amd64.deb" -o netcat-openbsd.deb
+ar x netcat-openbsd.deb
+# Ubuntu 24.04 uses zstd compression
+if [ -f "data.tar.zst" ]; then
+    zstd -d -f data.tar.zst && tar xf data.tar --no-same-owner --no-same-permissions 2>/dev/null || tar xf data.tar 2>/dev/null
+elif [ -f "data.tar.xz" ]; then
+    tar xf data.tar.xz --no-same-owner --no-same-permissions 2>/dev/null || tar xf data.tar.xz 2>/dev/null
+fi
+# netcat binary is in bin/nc.openbsd
+if [ -f "bin/nc.openbsd" ]; then
+    cp bin/nc.openbsd "$current_dir/usr/local/bin/nc"
+elif [ -f "usr/bin/nc" ]; then
+    cp usr/bin/nc "$current_dir/usr/local/bin/nc"
+else
+    printf "${RED}Warning: netcat binary not found in package\n"
+fi
+
+# Skip nmap for now - can be added later if needed
+
+# Download and extract MTR package
+printf "${GREEN}Installing MTR from Ubuntu package\n"
+curl -fsSL "http://archive.ubuntu.com/ubuntu/pool/universe/m/mtr/mtr_0.95-1.1build2_amd64.deb" -o mtr.deb
+ar x mtr.deb
+# Ubuntu 24.04 uses zstd compression
+if [ -f "data.tar.zst" ]; then
+    zstd -d -f data.tar.zst && tar xf data.tar --no-same-owner --no-same-permissions 2>/dev/null || tar xf data.tar 2>/dev/null
+elif [ -f "data.tar.xz" ]; then
+    tar xf data.tar.xz --no-same-owner --no-same-permissions 2>/dev/null || tar xf data.tar.xz 2>/dev/null
+fi
+if [ -f "usr/bin/mtr" ]; then
+    cp usr/bin/mtr "$current_dir/usr/local/bin/mtr"
+    cp usr/bin/mtr "$current_dir/usr/local/bin/traceroute"  # Also provide as traceroute
+elif [ -f "usr/bin/mtr-packet" ]; then
+    cp usr/bin/mtr-packet "$current_dir/usr/local/bin/mtr"
+    cp usr/bin/mtr-packet "$current_dir/usr/local/bin/traceroute"
+else
+    printf "${RED}Warning: mtr binary not found in package\n"
+fi
+
+# Install man pages if available
+if [ -f "usr/share/man/man8/mtr.8.gz" ]; then
+  mkdir -p "$current_dir/usr/local/share/man/man8"
+  cp usr/share/man/man8/mtr.8.gz "$current_dir/usr/local/share/man/man8/"
+fi
+
+# Clean up MTR files
+rm -f mtr.deb debian-binary control.tar.* data.tar.*
+
+# Note: nmap has too many dependencies for a static system extension
+# Users can install nmap separately if needed
+
+# Return to MiniUPnPc directory and clean up
+cd "$current_dir/../miniupnpc-$latest_version" || exit 1
+rm -rf "$pkg_tmpdir"
+
 # Install headers for development (optional)
 printf "${GREEN}Installing development headers\n"
 mkdir -p "$current_dir/usr/local/include/miniupnpc"
