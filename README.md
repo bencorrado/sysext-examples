@@ -16,7 +16,7 @@ You can see the env vars that can be set when building the images under the shar
  - `K3S_VERSION`: k3s version to build. This defaults to the latest available if not set.
  - `SBCTL_VERSION`: sbctl version to build. This defaults to the latest available if not set.
  - `TAILSCALE_VERSION`: tailscale version to build. This defaults to the latest available if not set.
- - `NEBULA_VERSION`: nebula version to build. This defaults to the latest available if not set.
+ - `NEBULA_VERSION`: nebula version to build. This defaults to `v1.9.7` with PKCS#11 support for TPM2/hardware key integration cherry-picked from PR #1153. Nebula is built from source with Go 1.25.4, CGO enabled, and the `pkcs11` build tag. You can override this to build a specific version, tag, or commit.
  - `PULUMI_ESC_VERSION`: Pulumi esc version to build. This defaults to the latest available if not set.
  - `HABITAT_VERSION`: Chef Habitat version to build. This defaults to the latest available if not set.
  - `HABITAT_CHANNEL`: Chef Habitat channel to build. This defaults to the stable if not set.
