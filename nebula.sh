@@ -201,6 +201,10 @@ cd build || exit 1
 if [[ ! "$latest_version" == "main" ]] && [[ ! "$latest_version" =~ ^[0-9a-f]{40}$ ]]; then
   printf "${GREEN}Cherry-picking PKCS#11 support from commit ${PKCS11_COMMIT}\n"
 
+  # Set git identity for cherry-pick (required in CI environments)
+  git config user.email "sysext-builder@localhost"
+  git config user.name "Sysext Builder"
+
   # Fetch the PKCS#11 commit
   if ! git fetch origin "${PKCS11_COMMIT}"; then
     printf "${RED}Failed to fetch PKCS#11 commit\n"
@@ -210,10 +214,14 @@ if [[ ! "$latest_version" == "main" ]] && [[ ! "$latest_version" =~ ^[0-9a-f]{40
   # Cherry-pick the PKCS#11 commit
   if ! git cherry-pick "${PKCS11_COMMIT}"; then
     printf "${RED}Failed to cherry-pick PKCS#11 support\n"
-    printf "${YELLOW}There may be conflicts. Attempting to continue...\n"
     # Check if there are conflicts
     if git status | grep -q "Unmerged paths"; then
       printf "${RED}Cherry-pick has conflicts that need manual resolution\n"
+      git cherry-pick --abort
+      exit 1
+    else
+      printf "${RED}Cherry-pick failed for unknown reason\n"
+      git cherry-pick --abort
       exit 1
     fi
   fi
