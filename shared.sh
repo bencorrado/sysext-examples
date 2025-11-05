@@ -27,6 +27,7 @@ LIBRESPEED_CLI_VERSION=${LIBRESPEED_CLI_VERSION:-}
 SYSBOX_VERSION=${SYSBOX_VERSION:-}
 NOMAD_VERSION=${NOMAD_VERSION:-}
 QEMU_VERSION=${QEMU_VERSION:-}
+CNI_PLUGINS_VERSION=${CNI_PLUGINS_VERSION:-}
 HABITAT_CHANNEL=${HABITAT_CHANNEL:-stable}
 
 
@@ -78,7 +79,7 @@ buildAndPush() {
   dir_name="${dir%/}"
 
   # Handle special cases for system extensions with dashes in their names first
-  for sysext in "docker-compose" "pulumi-esc" "pulumi_esc" "librespeed-cli"; do
+  for sysext in "docker-compose" "pulumi-esc" "pulumi_esc" "librespeed-cli" "cni-plugins"; do
     if [[ "$dir_name" == "$sysext-"* ]]; then
       name="$sysext"
       version="${dir_name#$sysext-}"

@@ -39,6 +39,7 @@ on:
           - librespeed-cli
           - sysbox
           - nomad
+          - cni-plugins
         default: docker
       build_all:
         description: 'Build all sysexts (ignores specific selection)'
@@ -73,7 +74,7 @@ jobs:
       - name: Set matrix
         id: set-matrix
         run: |
-          ALL_SYSEXTS=("qemu" "k3s" "sbctl" "tailscale" "helm" "k9s" "nebula" "pulumi_esc" "habitat" "incus" "openbao" "alloy" "speedtest" "miniupnpc" "docker" "docker-compose" "falco" "librespeed-cli" "sysbox" "nomad")
+          ALL_SYSEXTS=("qemu" "k3s" "sbctl" "tailscale" "helm" "k9s" "nebula" "pulumi_esc" "habitat" "incus" "openbao" "alloy" "speedtest" "miniupnpc" "docker" "docker-compose" "falco" "librespeed-cli" "sysbox" "nomad" "cni-plugins")
 
           # If workflow_dispatch with build_all option
           if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.build_all }}" == "true" ]]; then

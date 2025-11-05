@@ -1,4 +1,4 @@
-This repo will generate latest docker images of k3s, tailscale, slack nebula, chef habitat, pulumi esc, incus, sbctl, openbao, grafana alloy, ookla speedtest, docker, docker-compose, falco, librespeed-cli, miniupnpc, and nomad with only the components ready to be consumed as systemd-sysext ready for builder.
+This repo will generate latest docker images of k3s, tailscale, slack nebula, chef habitat, pulumi esc, incus, sbctl, openbao, grafana alloy, ookla speedtest, docker, docker-compose, falco, librespeed-cli, miniupnpc, nomad, and cni-plugins with only the components ready to be consumed as systemd-sysext ready for builder.
 
 This can be used either with [auroraboot](https://github.com/kairos-io/AuroraBoot) to generate a signed sysext or manually by unpacking the image with [luet](https://luet.io/) and using systemd-repart to build a signed sysextension.
 
@@ -29,6 +29,7 @@ You can see the env vars that can be set when building the images under the shar
  - `FALCO_VERSION`: Falco version to build. This defaults to the latest available if not set.
  - `LIBRESPEED_CLI_VERSION`: LibreSpeed CLI version to build. This defaults to the latest available if not set.
  - `NOMAD_VERSION`: Nomad version to build. This defaults to the latest available if not set.
+ - `CNI_PLUGINS_VERSION`: CNI plugins version to build. This defaults to the latest available if not set.
 
 It has three modes of operation:
  - `KEEP_FILES=true` and `PUSH=false`: This is the default method. It will generate the files locally but not build the docker image nor push it.
@@ -113,4 +114,4 @@ $ systemd-repart -S -s  --private-key=PRIVATE_KEY --certificate=CERTIFICATE
 
 The Docker, Docker Compose, and Falco system extension scripts are based on work from the [sysext-bakery](https://github.com/flatcar/sysext-bakery) project and are licensed under the Apache License, Version 2.0.
 
-The Incus, Nebula, Chef Habitat, Pulumi ESC, OpenBao, Grafana Alloy, Ookla Speedtest, LibreSpeed CLI, MiniUPnPc, and Nomad system extensions scripts are work from [bencorrado](https://github.com/bencorrado) and are licensed under the Apache License, Version 2.0.
+The Incus, Nebula, Chef Habitat, Pulumi ESC, OpenBao, Grafana Alloy, Ookla Speedtest, LibreSpeed CLI, MiniUPnPc, Nomad, and CNI Plugins system extensions scripts are work from [bencorrado](https://github.com/bencorrado) and are licensed under the Apache License, Version 2.0.
