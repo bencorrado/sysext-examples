@@ -1,4 +1,4 @@
-This repo will generate latest docker images of k3s, tailscale, slack nebula, chef habitat, pulumi esc, incus, sbctl, openbao, grafana alloy, ookla speedtest, docker, docker-compose, falco, librespeed-cli, miniupnpc, nomad, and cni-plugins with only the components ready to be consumed as systemd-sysext ready for builder.
+This repo will generate latest docker images of k3s, k0s, tailscale, slack nebula, chef habitat, pulumi esc, incus, sbctl, openbao, grafana alloy, ookla speedtest, docker, docker-compose, falco, librespeed-cli, miniupnpc, nomad, qemu, and cni-plugins with only the components ready to be consumed as systemd-sysext ready for builder.
 
 This can be used either with [auroraboot](https://github.com/kairos-io/AuroraBoot) to generate a signed sysext or manually by unpacking the image with [luet](https://luet.io/) and using systemd-repart to build a signed sysextension.
 
@@ -14,6 +14,7 @@ You can see the env vars that can be set when building the images under the shar
  - `FORCE`: whether to force the build of the files. Normally if the script sees the directory already created, it won't proceed further as it assumes that the sysext files were already generated. This var makes it so the dir is removed and recreated from scratch. Useful if the script failed and leaved files around or the download of artifacts broke and you want to redo the process.
  - `SKIP_VERIFY`: whether to skip signature verification if it fails. This is useful in environments where GPG verification might fail due to network issues or key server problems. Default is false.
  - `K3S_VERSION`: k3s version to build. This defaults to the latest available if not set.
+ - `K0S_VERSION`: k0s version to build. This defaults to the latest available if not set.
  - `SBCTL_VERSION`: sbctl version to build. This defaults to the latest available if not set.
  - `TAILSCALE_VERSION`: tailscale version to build. This defaults to the latest available if not set.
  - `NEBULA_VERSION`: nebula version to build. This defaults to `v1.9.7` with PKCS#11 support for TPM2/hardware key integration cherry-picked from PR #1153. Nebula is built from source with Go 1.25.4, CGO enabled, and the `pkcs11` build tag. You can override this to build a specific version, tag, or commit.
@@ -114,4 +115,6 @@ $ systemd-repart -S -s  --private-key=PRIVATE_KEY --certificate=CERTIFICATE
 
 The Docker, Docker Compose, and Falco system extension scripts are based on work from the [sysext-bakery](https://github.com/flatcar/sysext-bakery) project and are licensed under the Apache License, Version 2.0.
 
-The Incus, Nebula, Chef Habitat, Pulumi ESC, OpenBao, Grafana Alloy, Ookla Speedtest, LibreSpeed CLI, MiniUPnPc, Nomad, and CNI Plugins system extensions scripts are work from [bencorrado](https://github.com/bencorrado) and are licensed under the Apache License, Version 2.0.
+The Incus, Nebula, Chef Habitat, Pulumi ESC, OpenBao, Grafana Alloy, Ookla Speedtest, LibreSpeed CLI, MiniUPnPc, Nomad, QEMU, and CNI Plugins system extensions scripts are work from [bencorrado](https://github.com/bencorrado) and are licensed under the Apache License, Version 2.0.
+
+The k0s system extension script is work from [Itxaka](https://github.com/Itxaka) and is licensed under the Apache License, Version 2.0.
