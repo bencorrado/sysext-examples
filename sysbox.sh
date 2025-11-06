@@ -4,7 +4,7 @@ source ./shared.sh
 
 # Install Go if not available
 install_go() {
-  local go_version="1.22.6"
+  local go_version="1.25.4"
   local arch="amd64"
 
   if [ "$(uname -m)" = "aarch64" ]; then

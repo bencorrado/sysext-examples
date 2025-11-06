@@ -182,7 +182,7 @@ jobs:
         if: matrix.item == 'sysbox'
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24.5'
+          go-version: '1.25.4'
       - name: Set up Go for Nebula
         if: matrix.item == 'nebula'
         uses: actions/setup-go@v4
