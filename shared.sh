@@ -85,8 +85,8 @@ buildAndPush() {
   # Get the full directory name without trailing slash
   dir_name="${dir%/}"
 
-  # Handle special cases for system extensions with dashes in their names first
-  for sysext in "docker-compose" "pulumi-esc" "pulumi_esc" "librespeed-cli" "cni-plugins"; do
+  # Handle special cases for system extensions with dashes in their names/versions first
+  for sysext in "docker-compose" "pulumi-esc" "pulumi_esc" "librespeed-cli" "cni-plugins" "auditd" "intel-microcode"; do
     if [[ "$dir_name" == "$sysext-"* ]]; then
       name="$sysext"
       version="${dir_name#$sysext-}"
