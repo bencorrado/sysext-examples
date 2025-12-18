@@ -1,0 +1,42 @@
+[Unit]
+Description=Linux Audit Daemon
+Documentation=man:auditd(8)
+After=local-fs.target
+Wants=local-fs.target
+
+[Service]
+Type=forking
+PIDFile=/run/auditd.pid
+
+# Start auditd
+ExecStart=/usr/local/sbin/auditd
+
+# Tune kernel audit buffering/throttling *after* daemon is up
+# -b increases backlog (queue depth)
+# -r rate limits audit messages (prevents printk storm)
+# Note: choose values based on your tolerance for loss vs latency.
+ExecStartPost=/usr/local/sbin/auditctl -b 32768
+ExecStartPost=/usr/local/sbin/auditctl -r 200
+
+# Load rules (prefer /etc/audit/rules.d via augenrules)
+ExecStartPost=-/usr/local/sbin/augenrules --load
+
+ExecReload=/bin/kill -HUP $MAINPID
+
+TimeoutStopSec=30
+Restart=on-failure
+RestartSec=5s
+
+# Security hardening
+ProtectSystem=strict
+ReadWritePaths=/var/log/audit
+ReadWritePaths=/run
+PrivateTmp=true
+NoNewPrivileges=true
+
+# auditd needs CAP_AUDIT_CONTROL and CAP_AUDIT_WRITE
+AmbientCapabilities=CAP_AUDIT_CONTROL CAP_AUDIT_WRITE
+CapabilityBoundingSet=CAP_AUDIT_CONTROL CAP_AUDIT_WRITE
+
+[Install]
+WantedBy=multi-user.target
