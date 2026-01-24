@@ -123,15 +123,17 @@ check_dependencies() {
 if [ -n "$NEBULA_VERSION" ]; then
   latest_version="$NEBULA_VERSION"
 else
-  # Build from v1.9.7 tag and cherry-pick PKCS#11 support from PR #1153
-  printf "${GREEN}Building v1.9.7 with PKCS#11 support cherry-picked from PR #1153\n"
-  latest_version="v1.9.7"
+  # Fetch the latest release tag from GitHub
+  printf "${GREEN}Fetching latest Nebula release tag from GitHub\n"
+  latest_version=$(curl -fsSL "https://api.github.com/repos/slackhq/nebula/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+  if [ -z "$latest_version" ]; then
+    printf "${RED}Failed to fetch latest Nebula version from GitHub\n"
+    exit 1
+  fi
 fi
 
-# PKCS#11 commit to cherry-pick (PR #1153 merge commit)
-PKCS11_COMMIT="35603d1c39fa8bfb0d35ef7ee29716023d0c65c0"
-
-printf "${GREEN}Using version %s\n" "$latest_version"
+# PKCS#11 support is native since v1.10.0, no cherry-picking required
+printf "${GREEN}Building Nebula %s with native PKCS#11 support\n" "$latest_version"
 
 # Check dependencies before proceeding (unless SKIP_DEPS is set)
 if [ "${SKIP_DEPS:-false}" != "true" ]; then
@@ -170,7 +172,7 @@ mkdir -p "$GOPATH" "$GOCACHE"
 # Clone the repository
 printf "${GREEN}Cloning Nebula repository\n"
 if [ "$latest_version" == "main" ]; then
-  # Build from main branch for latest PKCS#11 support
+  # Build from main branch
   if ! git clone --depth 1 https://github.com/slackhq/nebula.git build; then
     printf "${RED}Failed to clone Nebula repository\n"
     exit 1
@@ -188,46 +190,14 @@ elif [[ "$latest_version" =~ ^[0-9a-f]{40}$ ]]; then
   fi
   cd .. || exit 1
 else
-  # Build from specific release tag and cherry-pick PKCS#11 support
-  if ! git clone --branch "${latest_version}" https://github.com/slackhq/nebula.git build; then
+  # Build from specific release tag (PKCS#11 support is native since v1.10.0)
+  if ! git clone --depth 1 --branch "${latest_version}" https://github.com/slackhq/nebula.git build; then
     printf "${RED}Failed to clone Nebula repository at ${latest_version}\n"
     exit 1
   fi
 fi
 
 cd build || exit 1
-
-# Cherry-pick PKCS#11 support if building from a tag (not main or specific commit)
-if [[ ! "$latest_version" == "main" ]] && [[ ! "$latest_version" =~ ^[0-9a-f]{40}$ ]]; then
-  printf "${GREEN}Cherry-picking PKCS#11 support from commit ${PKCS11_COMMIT}\n"
-
-  # Set git identity for cherry-pick (required in CI environments)
-  git config user.email "sysext-builder@localhost"
-  git config user.name "Sysext Builder"
-
-  # Fetch the PKCS#11 commit
-  if ! git fetch origin "${PKCS11_COMMIT}"; then
-    printf "${RED}Failed to fetch PKCS#11 commit\n"
-    exit 1
-  fi
-
-  # Cherry-pick the PKCS#11 commit
-  if ! git cherry-pick "${PKCS11_COMMIT}"; then
-    printf "${RED}Failed to cherry-pick PKCS#11 support\n"
-    # Check if there are conflicts
-    if git status | grep -q "Unmerged paths"; then
-      printf "${RED}Cherry-pick has conflicts that need manual resolution\n"
-      git cherry-pick --abort
-      exit 1
-    else
-      printf "${RED}Cherry-pick failed for unknown reason\n"
-      git cherry-pick --abort
-      exit 1
-    fi
-  fi
-
-  printf "${GREEN}Successfully cherry-picked PKCS#11 support\n"
-fi
 
 # Set GOTOOLCHAIN to use the local Go installation and prevent automatic downloads
 export GOTOOLCHAIN=local
